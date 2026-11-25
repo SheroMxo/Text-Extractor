@@ -7,8 +7,8 @@ mod ocr;
 mod overlay;
 
 use std::cell::RefCell;
-use windows::core::{w, HSTRING};
-use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM};
+use windows::core::{w, HSTRING, PCWSTR};
+use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::Threading::CreateMutexW;
 use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_SINGLETHREADED};
@@ -58,7 +58,13 @@ unsafe fn register_app_hotkey(hwnd: HWND, hk: &HotkeyConfig) {
     let _ = RegisterHotKey(hwnd, HOTKEY_ID, mods, hk.vk);
 }
 
-unsafe fn update_tray_tooltip(hwnd: HWND, hk: &HotkeyConfig, add: bool) {
+unsafe fn load_app_icon(hinstance: HINSTANCE) -> windows::Win32::UI::WindowsAndMessaging::HICON {
+    LoadIconW(hinstance, PCWSTR(1 as *const u16))
+        .or_else(|_| LoadIconW(None, IDI_APPLICATION))
+        .unwrap_or_default()
+}
+
+unsafe fn update_tray_tooltip(hwnd: HWND, hinstance: HINSTANCE, hk: &HotkeyConfig, add: bool) {
     let mut nid = NOTIFYICONDATAW {
         cbSize: std::mem::size_of::<NOTIFYICONDATAW>() as u32,
         hWnd: hwnd,
@@ -70,7 +76,7 @@ unsafe fn update_tray_tooltip(hwnd: HWND, hk: &HotkeyConfig, add: bool) {
         },
         uCallbackMessage: WM_TRAYICON,
         hIcon: if add {
-            LoadIconW(None, IDI_APPLICATION).unwrap_or_default()
+            load_app_icon(hinstance)
         } else {
             Default::default()
         },
@@ -101,7 +107,7 @@ unsafe fn open_shortcut_settings(hwnd: HWND) {
             }
         });
         register_app_hotkey(hwnd, &new_hk);
-        update_tray_tooltip(hwnd, &new_hk, false);
+        update_tray_tooltip(hwnd, HINSTANCE::default(), &new_hk, false);
     } else {
         register_app_hotkey(hwnd, &current);
     }
@@ -338,7 +344,7 @@ fn main() {
         };
 
         register_app_hotkey(hwnd, &init_hk);
-        update_tray_tooltip(hwnd, &init_hk, true);
+        update_tray_tooltip(hwnd, hinstance.into(), &init_hk, true);
 
         let mut msg = MSG::default();
         while GetMessageW(&mut msg, None, 0, 0).as_bool() {
