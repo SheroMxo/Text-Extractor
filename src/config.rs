@@ -16,11 +16,11 @@ pub struct HotkeyConfig {
 impl Default for HotkeyConfig {
     fn default() -> Self {
         Self {
-            win: true,
-            ctrl: false,
+            win: false,
+            ctrl: true,
             alt: false,
-            shift: true,
-            vk: 0x54, // 'T'
+            shift: false,
+            vk: 0x53, // 'S'
         }
     }
 }
