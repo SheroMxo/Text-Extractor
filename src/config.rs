@@ -20,7 +20,7 @@ impl Default for HotkeyConfig {
             ctrl: true,
             alt: false,
             shift: false,
-            vk: 0x53, // 'S'
+            vk: 0x54, // 'T'
         }
     }
 }

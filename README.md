@@ -15,7 +15,7 @@ A lightweight, standalone Windows OCR screen-capture utility written in pure Rus
   - Hold `Shift` while dragging to move the selection box
   - High-contrast crosshair cursor
   - `Esc` or right-click to cancel
-- **Global Hotkey & System Tray**: Default `Ctrl + S` (customizable), saved in `config.txt`.
+- **Global Hotkey & System Tray**: Default `Ctrl + T` (customizable), saved in `config.txt`.
 
 ## Build from Source
 ```powershell

@@ -201,7 +201,7 @@ unsafe fn show_tray_menu(hwnd: HWND) {
             }
         });
 
-        let _ = AppendMenuW(menu, MF_POPUP, lang_menu.0 as usize, w!("OCR Language"));
+        let _ = AppendMenuW(menu, MF_POPUP, lang_menu.0 as usize, w!("Language"));
     }
 
     let _ = AppendMenuW(menu, MF_STRING, IDM_SHORTCUT, w!("Change Shortcut..."));
