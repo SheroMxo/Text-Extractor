@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::time::{Duration, Instant};
 use windows::core::{w, HSTRING};
 use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
@@ -73,6 +74,7 @@ struct OverlayState {
     cross_cursor: HCURSOR,
     arrow_cursor: HCURSOR,
     custom_cross_owned: bool,
+    last_popup_closed: Option<(ToolbarHit, Instant)>,
 }
 
 impl Drop for OverlayState {
@@ -531,6 +533,12 @@ unsafe fn show_language_popup(hwnd: HWND) {
     );
     let _ = DestroyMenu(menu);
 
+    OVERLAY_STATE.with(|cell| {
+        if let Some(state) = cell.borrow_mut().as_mut() {
+            state.last_popup_closed = Some((ToolbarHit::LangDropdown, Instant::now()));
+        }
+    });
+
     if cmd.0 == 1 {
         OVERLAY_STATE.with(|cell| {
             if let Some(state) = cell.borrow_mut().as_mut() {
@@ -593,6 +601,12 @@ unsafe fn show_settings_popup(hwnd: HWND) {
         None,
     );
     let _ = DestroyMenu(menu);
+
+    OVERLAY_STATE.with(|cell| {
+        if let Some(state) = cell.borrow_mut().as_mut() {
+            state.last_popup_closed = Some((ToolbarHit::Settings, Instant::now()));
+        }
+    });
 
     match cmd.0 {
         10 => {
@@ -678,7 +692,18 @@ unsafe extern "system" fn overlay_wnd_proc(
 
             match hit {
                 ToolbarHit::LangDropdown => {
-                    show_language_popup(hwnd);
+                    let should_skip = OVERLAY_STATE.with(|cell| {
+                        cell.borrow_mut().as_mut().map(|s| {
+                            if let Some((h, t)) = s.last_popup_closed.take() {
+                                h == ToolbarHit::LangDropdown && t.elapsed() < Duration::from_millis(250)
+                            } else {
+                                false
+                            }
+                        }).unwrap_or(false)
+                    });
+                    if !should_skip {
+                        show_language_popup(hwnd);
+                    }
                     return LRESULT(0);
                 }
                 ToolbarHit::SingleLine => {
@@ -708,7 +733,18 @@ unsafe extern "system" fn overlay_wnd_proc(
                     return LRESULT(0);
                 }
                 ToolbarHit::Settings => {
-                    show_settings_popup(hwnd);
+                    let should_skip = OVERLAY_STATE.with(|cell| {
+                        cell.borrow_mut().as_mut().map(|s| {
+                            if let Some((h, t)) = s.last_popup_closed.take() {
+                                h == ToolbarHit::Settings && t.elapsed() < Duration::from_millis(250)
+                            } else {
+                                false
+                            }
+                        }).unwrap_or(false)
+                    });
+                    if !should_skip {
+                        show_settings_popup(hwnd);
+                    }
                     return LRESULT(0);
                 }
                 ToolbarHit::Close => {
@@ -996,6 +1032,7 @@ pub fn run_capture_overlay(
             cross_cursor,
             arrow_cursor,
             custom_cross_owned,
+            last_popup_closed: None,
         });
     });
 
